@@ -1,0 +1,49 @@
+---
+name: " Prod Image Build and Deployment"
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  
+  build:
+        
+    runs-on: ubuntu-latest      
+    env :  
+      packer_version: "1.9.4"  
+    
+    steps:
+
+      - name: "Checkout Repository"
+        uses : actions/checkout@v3
+
+      - name: "Packer installation"
+        uses: hashicorp/setup-packer@main
+        with:
+          version: ${{ env.packer_version }}
+
+      - name: "Format Packer file"
+        run: packer fmt .
+        working-directory: ./packer/
+        shell: bash
+            
+      - name: "Packer init"
+        run: packer init .
+        working-directory: ./packer/
+        shell: bash
+            
+      - name: "Packer validate"
+        run: packer validate -var-file="prod.pkrvars.hcl" . 
+        working-directory: ./packer/            
+        shell: bash            
+
+      - name: "Packer build"
+        run: packer build -var-file="prod.pkrvars.hcl" .
+        working-directory: ./packer/            
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.PROD_ACCESS_KEY }}    
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_SECRET_ACCESS_KEY }}    
+          AWS_DEFAULT_REGION: ${{ secrets.PROD_REGION }}   
